@@ -1,0 +1,35 @@
+title = "YOLOForge gitleaks config"
+
+# Default ruleset (AWS-style keys, generic API keys/tokens, private key
+# blocks, etc.) plus rules tuned to this monorepo's specific secret
+# shapes across both app/ and keyvault/.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "yoloforge-keyvault-token"
+description = "Key vault shared auth token (64 hex chars from openssl rand -hex 32)"
+regex = '''(?i)(KEYVAULT_SHARED_TOKEN|SHARED_AUTH_TOKEN)\s*[:=]\s*["']?[a-f0-9]{64}["']?'''
+tags = ["secret", "yoloforge"]
+
+[[rules]]
+id = "yoloforge-master-key"
+description = "Worker master AES key (base64, from openssl rand -base64 32)"
+regex = '''(?i)MASTER_KEY_B64\s*[:=]\s*["']?[A-Za-z0-9+/]{40,44}={0,2}["']?'''
+tags = ["secret", "yoloforge"]
+
+[[rules]]
+id = "r2-access-key-assignment"
+description = "A real-looking value assigned to an R2/AWS-style access key env var"
+regex = '''(?i)(R2_ACCESS_KEY_ID|R2_SECRET_ACCESS_KEY|accessKeyId|secretAccessKey)\s*[:=]\s*["'][A-Za-z0-9/+=]{16,}["']'''
+tags = ["secret", "yoloforge"]
+
+# Never flag matches inside example/template files or docs — these are
+# meant to contain variable NAMES with empty or placeholder values.
+[allowlist]
+paths = [
+  '''\.env\.example$''',
+  '''\.dev\.vars\.example$''',
+  '''README\.md$''',
+  '''MAINTAINING\.md$''',
+]

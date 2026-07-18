@@ -1,0 +1,9 @@
+# This file lives in app/ because this is a monorepo. When connecting
+# this repo to Netlify, set "Base directory" to "app" in the site's
+# Build & deploy settings — Netlify then treats this folder as the
+# effective repo root and this config applies correctly.
+[build]
+  command = "npm run build"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
