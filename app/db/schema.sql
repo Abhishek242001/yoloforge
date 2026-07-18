@@ -16,10 +16,10 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- for gen_random_uuid()
 -- ------------------------------------------------------------
 
 -- ------------------------------------------------------------
--- Users — Auth.js (NextAuth) pg-adapter expects specific tables
--- (users, accounts, sessions, verification_token). We extend the
--- 'users' table it manages with our own quota/role columns rather
--- than creating a second table, to keep one source of truth per user.
+-- Users — v3 (credentials-based auth, replacing Google OAuth).
+-- The 'accounts' table below becomes unused for new signups (no OAuth
+-- provider linking needed) but is left in place rather than dropped,
+-- per instruction to preserve the existing database as-is.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -32,6 +32,27 @@ CREATE TABLE IF NOT EXISTS users (
     role                TEXT NOT NULL DEFAULT 'public' CHECK (role IN ('public', 'intern', 'researcher', 'admin')),
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Migration-safe additions for credentials-based auth. Run individually
+-- against an existing database — each is a no-op if already applied.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id);
+
+-- Simplify the role model to admin/user for the credentials system.
+-- Existing rows with legacy roles ('public','intern','researcher') are
+-- treated as 'user' going forward; 'admin' rows are preserved as-is.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'role'
+  ) THEN
+    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+    UPDATE users SET role = 'user' WHERE role NOT IN ('admin', 'user');
+    ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'user'));
+    ALTER TABLE users ALTER COLUMN role SET DEFAULT 'user';
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS accounts (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -49,6 +70,10 @@ CREATE TABLE IF NOT EXISTS accounts (
     UNIQUE(provider, "providerAccountId")
 );
 
+-- Session expiry is enforced at the application layer (48-hour fixed
+-- window from login, per product decision — not sliding/refreshing).
+-- The 'expires' column here is the source of truth Auth.js checks on
+-- every request; the app sets it to now() + 48h at login time.
 CREATE TABLE IF NOT EXISTS sessions (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "sessionToken"  TEXT NOT NULL UNIQUE,

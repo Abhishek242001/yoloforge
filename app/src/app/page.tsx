@@ -1,10 +1,9 @@
-import { auth, signIn, signOut } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 import Link from "next/link";
 
 // Class colors lifted directly from the original Colab verification tool
-// (see the project's early annotation script) — reused here as the
-// page's accent palette so the design language is literally drawn from
-// the domain it serves, not a generic template choice.
+// — reused here as the page's accent palette so the design language is
+// literally drawn from the domain it serves.
 const CLASS_SWATCHES = [
   { hex: "#E61945", label: "Bogie" },
   { hex: "#3CB44B", label: "Spring" },
@@ -27,19 +26,29 @@ export default async function Home() {
             YOLO<span className="text-[#FF6B35]">FORGE</span>
           </span>
           {session?.user && (
-            <form
-              action={async () => {
-                "use server";
-                await signOut();
-              }}
-            >
-              <button
-                type="submit"
-                className="text-xs text-[#6B7280] transition-colors hover:text-[#EDEDED]"
+            <div className="flex items-center gap-4">
+              {session.user.role === "admin" && (
+                <Link
+                  href="/admin"
+                  className="text-xs text-[#6B7280] transition-colors hover:text-[#EDEDED]"
+                >
+                  Admin
+                </Link>
+              )}
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/login" });
+                }}
               >
-                Sign out
-              </button>
-            </form>
+                <button
+                  type="submit"
+                  className="text-xs text-[#6B7280] transition-colors hover:text-[#EDEDED]"
+                >
+                  Sign out
+                </button>
+              </form>
+            </div>
           )}
         </div>
       </header>
@@ -65,9 +74,6 @@ function SignedOutView() {
   return (
     <div className="grid items-center gap-16 sm:grid-cols-[1.1fr_0.9fr]">
       <div>
-        {/* Viewfinder / detection-box signature element: a bounding box
-            with corner brackets, echoing the annotation UI itself,
-            "detecting" the headline the way the tool detects objects. */}
         <div className="group relative inline-block">
           <span className="pointer-events-none absolute -left-3 -top-3 h-5 w-5 border-l-2 border-t-2 border-[#FF6B35] transition-all duration-500 group-hover:-left-4 group-hover:-top-4" />
           <span className="pointer-events-none absolute -right-3 -top-3 h-5 w-5 border-r-2 border-t-2 border-[#FF6B35] transition-all duration-500 group-hover:-right-4 group-hover:-top-4" />
@@ -86,24 +92,15 @@ function SignedOutView() {
           control.
         </p>
 
-        <form
-          action={async () => {
-            "use server";
-            await signIn("google", { redirectTo: "/" });
-          }}
-          className="mt-10"
+        <Link
+          href="/login"
+          className="mt-10 inline-flex items-center gap-2 rounded-md border border-white/15 bg-[#111318] px-5 py-3 text-sm font-medium text-[#EDEDED] transition-colors hover:border-[#FF6B35]/50 hover:bg-[#16181D]"
         >
-          <button
-            type="submit"
-            className="inline-flex items-center gap-3 rounded-md border border-white/15 bg-[#111318] px-5 py-3 text-sm font-medium text-[#EDEDED] transition-colors hover:border-[#FF6B35]/50 hover:bg-[#16181D]"
-          >
-            <GoogleMark />
-            Sign in with Google
-          </button>
-        </form>
+          Sign in
+        </Link>
 
         <p className="mt-4 text-xs text-[#6B7280]">
-          No account creation step — signing in creates your workspace.
+          Accounts are created by an administrator.
         </p>
       </div>
 
@@ -174,28 +171,5 @@ function SignedInView({
         </div>
       </div>
     </div>
-  );
-}
-
-function GoogleMark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"
-      />
-      <path
-        fill="#34A853"
-        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z"
-      />
-      <path
-        fill="#EA4335"
-        d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.59-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"
-      />
-    </svg>
   );
 }
