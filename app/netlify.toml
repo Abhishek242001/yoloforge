@@ -1,9 +1,15 @@
 # This file lives in app/ because this is a monorepo. When connecting
 # this repo to Netlify, set "Base directory" to "app" in the site's
 # Build & deploy settings — Netlify then treats this folder as the
-# effective repo root and this config applies correctly.
+# effective repo root and all paths below (including "publish") are
+# relative to app/, not the repo root.
+#
+# publish = ".next" is required explicitly: the @netlify/plugin-nextjs
+# plugin errors out if the resolved publish directory equals the base
+# directory, which happens if this is left unset in a monorepo.
 [build]
   command = "npm run build"
+  publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
